@@ -19,6 +19,7 @@ rules:
       t_order:
         actualDataNodes: ds_${0..1}.t_order_${0..31}
         databaseStrategy:
+          # 复杂分片（complex）：支持多个分片键（user_id, order_sn）
           complex:
             shardingColumns: user_id,order_sn
             shardingAlgorithmName: order_database_complex_mod
@@ -39,6 +40,7 @@ rules:
       t_order_item_passenger:
         actualDataNodes: ds_${0..1}.t_order_item_passenger_${0..31}
         databaseStrategy:
+          # 标准分片（standard）：只支持单一分片键（id_card）
           standard:
             shardingColumn: id_card
             shardingAlgorithmName: order_passenger_relation_database_mod
@@ -46,6 +48,8 @@ rules:
           standard:
             shardingColumn: id_card
             shardingAlgorithmName: order_passenger_relation_table_mod
+
+    # 分库分表算法
     shardingAlgorithms:
       order_database_complex_mod:
         type: CLASS_BASED

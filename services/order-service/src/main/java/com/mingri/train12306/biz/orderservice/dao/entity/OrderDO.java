@@ -98,4 +98,9 @@ public class OrderDO extends BaseDO {
      * 出发时间
      */
     private Date arrivalTime;
+
+    /**
+     * 积分TCC事务ID
+     */
+    private String pointTccTransactionId;
 }

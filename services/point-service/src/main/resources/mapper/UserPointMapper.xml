@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mingri.train12306.biz.pointservice.dao.mapper.UserPointMapper">
+
+    <select id="selectByUserId" resultType="com.mingri.train12306.biz.pointservice.dao.entity.UserPointDO">
+        SELECT * FROM t_user_point WHERE user_id = #{userId}
+    </select>
+
+    <update id="increasePoint">
+        UPDATE t_user_point
+        SET point = point + #{point}, update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="decreasePoint">
+        UPDATE t_user_point
+        SET point = point - #{point}, update_time = NOW()
+        WHERE user_id = #{userId} AND point >= #{point}
+    </update>
+
+    <update id="increaseFrozenPoint">
+        UPDATE t_user_point
+        SET frozen_point = frozen_point + #{point}, update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="decreaseFrozenPoint">
+        UPDATE t_user_point
+        SET frozen_point = frozen_point - #{point}, update_time = NOW()
+        WHERE user_id = #{userId} AND frozen_point >= #{point}
+    </update>
+
+    <update id="increaseTotalPoint">
+        UPDATE t_user_point
+        SET total_point = total_point + #{point}, update_time = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+</mapper>
+

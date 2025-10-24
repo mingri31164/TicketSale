@@ -34,6 +34,7 @@ import com.mingri.train12306.biz.orderservice.remote.dto.UserQueryActualRespDTO;
 import com.mingri.train12306.biz.orderservice.service.OrderItemService;
 import com.mingri.train12306.biz.orderservice.service.OrderPassengerRelationService;
 import com.mingri.train12306.biz.orderservice.service.OrderService;
+import com.mingri.train12306.biz.orderservice.service.PointTccIntegrationService;
 import com.mingri.train12306.biz.orderservice.service.orderid.OrderIdGeneratorManager;
 import com.mingri.train12306.framework.starter.common.toolkit.BeanUtil;
 import com.mingri.train12306.framework.starter.convention.exception.ClientException;
@@ -65,6 +66,7 @@ public class OrderServiceImpl implements OrderService {
     private final RedissonClient redissonClient;
     private final DelayCloseOrderSendProduce delayCloseOrderSendProduce;
     private final UserRemoteService userRemoteService;
+    private final PointTccIntegrationService pointTccIntegrationService;
 
     @Override
     public TicketOrderDetailRespDTO queryTicketOrderByOrderSn(String orderSn) {
@@ -102,6 +104,16 @@ public class OrderServiceImpl implements OrderService {
     public String createTicketOrder(TicketOrderCreateReqDTO requestParam) {
         // 通过基因法将用户 ID 融入到订单号
         String orderSn = OrderIdGeneratorManager.generateId(requestParam.getUserId());
+        
+        // 计算订单总金额
+        Integer totalAmount = requestParam.getTicketOrderItems().stream()
+                .mapToInt(TicketOrderItemCreateReqDTO::getAmount)
+                .sum();
+        
+        // TCC Try阶段：冻结积分
+        String pointTccTransactionId = pointTccIntegrationService.freezePointOnCreateOrder(
+                orderSn, requestParam.getUserId(), totalAmount);
+        
         OrderDO orderDO = OrderDO.builder().orderSn(orderSn)
                 .orderTime(requestParam.getOrderTime())
                 .departure(requestParam.getDeparture())
@@ -115,6 +127,7 @@ public class OrderServiceImpl implements OrderService {
                 .status(OrderStatusEnum.PENDING_PAYMENT.getStatus())
                 .username(requestParam.getUsername())
                 .userId(String.valueOf(requestParam.getUserId()))
+                .pointTccTransactionId(pointTccTransactionId)
                 .build();
         orderMapper.insert(orderDO);
         List<TicketOrderItemCreateReqDTO> ticketOrderItems = requestParam.getTicketOrderItems();
@@ -215,6 +228,11 @@ public class OrderServiceImpl implements OrderService {
             if (updateItemResult <= 0) {
                 throw new ServiceException(OrderCanalErrorCodeEnum.ORDER_CANAL_ERROR);
             }
+            
+            // TCC Cancel阶段：取消订单，归还冻结积分
+            if (orderDO.getPointTccTransactionId() != null) {
+                pointTccIntegrationService.cancelPointOnPayFail(orderDO.getPointTccTransactionId());
+            }
         } finally {
             lock.unlock();
         }
@@ -267,6 +285,15 @@ public class OrderServiceImpl implements OrderService {
         int updateResult = orderMapper.update(updateOrderDO, updateWrapper);
         if (updateResult <= 0) {
             throw new ServiceException(OrderCanalErrorCodeEnum.ORDER_STATUS_REVERSAL_ERROR);
+        }
+        
+        // TCC Confirm阶段：支付成功，发放积分
+        LambdaQueryWrapper<OrderDO> queryWrapper = Wrappers.lambdaQuery(OrderDO.class)
+                .eq(OrderDO::getOrderSn, requestParam.getOrderSn())
+                .select(OrderDO::getPointTccTransactionId);
+        OrderDO orderDO = orderMapper.selectOne(queryWrapper);
+        if (orderDO != null && orderDO.getPointTccTransactionId() != null) {
+            pointTccIntegrationService.grantPointOnPaySuccess(orderDO.getPointTccTransactionId());
         }
     }
 
