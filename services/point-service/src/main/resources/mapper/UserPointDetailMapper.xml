@@ -10,5 +10,37 @@
         SELECT * FROM t_user_point_detail WHERE transaction_id = #{transactionId}
     </select>
 
+    <!-- 查询用户所有未平的帐（remainder < 0） -->
+    <select id="queryDebtListByUserId" resultType="com.mingri.train12306.biz.pointservice.dao.entity.UserPointDetailDO">
+        SELECT * 
+        FROM t_user_point_detail
+        WHERE user_id = #{userId}
+          AND remainder &lt; 0
+          AND state = 'COMMITTED'
+          AND id &gt; #{startId}
+        ORDER BY create_time ASC
+        LIMIT #{limitSize}
+    </select>
+
+    <!-- 查询用户可用积分明细（remainder > 0，按过期时间排序） -->
+    <select id="queryAvailableDetailsByUserId" resultType="com.mingri.train12306.biz.pointservice.dao.entity.UserPointDetailDO">
+        SELECT * 
+        FROM t_user_point_detail
+        WHERE user_id = #{userId}
+          AND remainder &gt; 0
+          AND state = 'COMMITTED'
+          AND (expire_time IS NULL OR expire_time &gt; NOW())
+        ORDER BY expire_time ASC, create_time ASC
+    </select>
+
+    <!-- 查询用户可用积分总额（用于T+1对账） -->
+    <select id="queryTotalCanConsume" resultType="java.lang.Integer">
+        SELECT COALESCE(SUM(remainder), 0)
+        FROM t_user_point_detail
+        WHERE user_id = #{userId}
+          AND remainder &gt; 0
+          AND state = 'COMMITTED'
+    </select>
+
 </mapper>
 

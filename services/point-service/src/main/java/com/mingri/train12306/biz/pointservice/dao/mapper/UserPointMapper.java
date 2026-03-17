@@ -40,5 +40,10 @@ public interface UserPointMapper extends BaseMapper<UserPointDO> {
      * 增加累计积分
      */
     int increaseTotalPoint(@Param("userId") Long userId, @Param("point") Integer point);
+    
+    /**
+     * 批量查询用户积分账户（游标分页）
+     */
+    java.util.List<UserPointDO> queryBatch(@Param("limit") Integer limit, @Param("lastId") Long lastId);
 }
 

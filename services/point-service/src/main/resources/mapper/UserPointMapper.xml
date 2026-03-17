@@ -36,5 +36,14 @@
         WHERE user_id = #{userId}
     </update>
 
+    <!-- 批量查询用户积分账户（游标分页） -->
+    <select id="queryBatch" resultType="com.mingri.train12306.biz.pointservice.dao.entity.UserPointDO">
+        SELECT *
+        FROM t_user_point
+        WHERE id &gt; #{lastId}
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
 </mapper>
 

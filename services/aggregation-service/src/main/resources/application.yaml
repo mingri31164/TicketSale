@@ -9,13 +9,13 @@ spring:
     url: jdbc:shardingsphere:classpath:shardingsphere-config-${database.emv:dev}.yaml
   data:
     redis:
-      host: 127.0.0.1
+      host: 139.9.51.109
       port: 6379
-      password: 123456
+      password: mingri1234
   cloud:
     nacos:
       discovery:
-        server-addr: 127.0.0.1:8848
+        server-addr: 117.72.48.167:8848
       config:
         server-addr: ${spring.cloud.nacos.discovery.server-addr}
         import-check:
